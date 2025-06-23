@@ -370,6 +370,7 @@ public class PlayerController : MonoBehaviour
         jumpBufferCounter = 0;
         rb.linearVelocity = Vector2.zero;
         rb.gravityScale = bashGravity;
+        transform.position = target.position;
         bashLockTimer = bashLockTime;
         bashTimer = bashTime;
         bashDir = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
