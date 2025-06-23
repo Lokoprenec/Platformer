@@ -9,6 +9,10 @@ public class PlayerController : MonoBehaviour
 
     public PlayerStates currentState;
 
+    [Header("Visuals")]
+
+    public SpriteRenderer graphic;
+
     [Header("Movement")]
 
     [Header("Horizontal movement")] //acceleration - max speed - deceleration - quick turn
@@ -160,6 +164,15 @@ public class PlayerController : MonoBehaviour
         RaycastHit2D groundCheck = Physics2D.Raycast(new Vector2(col.bounds.min.x + 0.1f, col.bounds.min.y - groundCheckDistance), Vector2.right, col.bounds.max.x - col.bounds.min.x - 0.1f, groundLayer); //checking in a horizontal line right bellow player's feet
         isGrounded = groundCheck.collider != null;
         Debug.DrawLine(new Vector2(col.bounds.min.x, col.bounds.min.y - groundCheckDistance), new Vector2(col.bounds.max.x, col.bounds.min.y - groundCheckDistance), Color.red);
+
+        if (direction == 1)
+        {
+            graphic.flipX = false;
+        }
+        else if (direction == -1)
+        {
+            graphic.flipX = true;
+        }
     }
 
     void CheckForMovement()
