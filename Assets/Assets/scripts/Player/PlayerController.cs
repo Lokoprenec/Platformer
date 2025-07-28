@@ -11,7 +11,16 @@ public class PlayerController : MonoBehaviour
 
     [Header("Visuals")]
 
+    [Header("Essentials")]
     public SpriteRenderer graphic;
+    private Animator anim;
+
+    [Header("Animations")]
+    public PlayerAnimations idleAnimation;
+    public PlayerAnimations runAnimation;
+    public PlayerAnimations jumpAnimation;
+    public PlayerAnimations fallAnimation;
+    public PlayerAnimations landingAnimation;
 
     [Header("Movement")]
 
@@ -35,6 +44,8 @@ public class PlayerController : MonoBehaviour
     public bool isGrounded;
     public float groundCheckDistance;
     public LayerMask groundLayer;
+    public float landingCooldown;
+    private float landingTimer;
 
     [Header("Movement bonuses")]
     public float coyoteTime;
@@ -60,6 +71,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
         pM = GetComponent<PlayerManager>();
+        anim = graphic.GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -72,6 +84,8 @@ public class PlayerController : MonoBehaviour
             CheckForAbilities();
 
             coyoteTimeCounter = coyoteTime;
+
+            anim.Play(idleAnimation.ToString());
         }
         else if (currentState == PlayerStates.Walk)
         {
@@ -79,6 +93,8 @@ public class PlayerController : MonoBehaviour
             CheckForAbilities();
 
             coyoteTimeCounter = coyoteTime;
+
+            anim.Play(runAnimation.ToString());
 
             if (rb.linearVelocityX == 0)
             {
@@ -98,12 +114,31 @@ public class PlayerController : MonoBehaviour
             WhileFalling();
             CheckForAbilities();
         }
+        else if (currentState == PlayerStates.Landing)
+        {
+            CheckForMovement();
+            CheckForAbilities();
+
+            coyoteTimeCounter = coyoteTime;
+
+            landingTimer -= Time.deltaTime;
+            
+            if (landingTimer <= 0)
+            {
+                currentState = PlayerStates.Idle;
+                landingTimer = landingCooldown;
+            }
+            else
+            {
+                anim.Play(landingAnimation.ToString());
+            }
+        }
         else if (currentState == PlayerStates.Dash)
         {
             if (isGrounded)
             {
                 rb.linearVelocityY = 0;
-                currentState = PlayerStates.Fall;
+                SetStateToFall();
                 return;
             }
 
@@ -157,7 +192,7 @@ public class PlayerController : MonoBehaviour
             if (rb.linearVelocityY <= hangTimeVelocityThreshold)
             {
                 rb.gravityScale = hangTimeGravity; //bonus air time
-                currentState = PlayerStates.Fall;
+                SetStateToFall();
             }
         }
 
@@ -165,14 +200,7 @@ public class PlayerController : MonoBehaviour
         isGrounded = groundCheck.collider != null;
         Debug.DrawLine(new Vector2(col.bounds.min.x, col.bounds.min.y - groundCheckDistance), new Vector2(col.bounds.max.x, col.bounds.min.y - groundCheckDistance), Color.red);
 
-        if (direction == 1)
-        {
-            graphic.flipX = false;
-        }
-        else if (direction == -1)
-        {
-            graphic.flipX = true;
-        }
+        transform.localScale = new Vector2(direction, transform.localScale.y);
     }
 
     void CheckForMovement()
@@ -213,7 +241,7 @@ public class PlayerController : MonoBehaviour
 
         if (rb.linearVelocityY < -0.01) //fall
         {
-            Fall();
+            SetStateToFall();
         }
         else if (currentState != PlayerStates.Jump)
         {
@@ -264,7 +292,7 @@ public class PlayerController : MonoBehaviour
             currentState = PlayerStates.ExitDash;
         }
 
-        if (currentState == PlayerStates.Idle)
+        if (currentState == PlayerStates.Idle || currentState == PlayerStates.Landing)
         {
             currentState = PlayerStates.Walk;
         }
@@ -289,6 +317,7 @@ public class PlayerController : MonoBehaviour
             rb.gravityScale = initialGravity;
             rb.linearVelocityY = jumpForce;
             currentState = PlayerStates.Jump;
+            anim.Play(jumpAnimation.ToString());
         }
     }
 
@@ -297,7 +326,7 @@ public class PlayerController : MonoBehaviour
         if (Mathf.Abs(rb.linearVelocityY) <= hangTimeVelocityThreshold)
         {
             rb.gravityScale = hangTimeGravity; //bonus air time
-            currentState = PlayerStates.Fall;
+            SetStateToFall();
         }
 
         if (Input.GetKeyUp(KeyCode.Space))
@@ -307,12 +336,18 @@ public class PlayerController : MonoBehaviour
 
         if (rb.linearVelocityY < -0.01) //fall
         {
-            Fall();
+            SetStateToFall();
         }
         else if (!Input.GetKey(KeyCode.Space))
         {
             rb.gravityScale = jumpCutGravity; //cuts the jump when the button is released
         }
+    }
+
+    void SetStateToFall()
+    {
+        anim.Play(fallAnimation.ToString());
+        currentState = PlayerStates.Fall;
     }
 
     void Fall()
@@ -337,7 +372,8 @@ public class PlayerController : MonoBehaviour
 
         if (isGrounded)
         {
-            currentState = PlayerStates.Idle;
+            currentState = PlayerStates.Landing;
+            landingTimer = landingCooldown;
         }
     }
 
@@ -384,5 +420,14 @@ public class PlayerController : MonoBehaviour
 
 public enum PlayerStates
 {
-    Idle, Walk, Jump, Fall, Dash, ExitDash
+    Idle, Walk, Jump, Fall, Landing, Dash, ExitDash
+}
+
+public enum PlayerAnimations
+{
+    staticIdleSketch, idleSketch, 
+    testRunSketch, runSketch, 
+    jumpStartSketch, jumpEndSketch, 
+    fallStartSketch, fallEndSketch, 
+    landingSketch
 }
